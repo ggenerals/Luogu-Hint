@@ -197,3 +197,46 @@ def get_validator() -> HintValidator:
     if _validator is None:
         _validator = HintValidator()
     return _validator
+
+
+def validate_hints(hints: list[Hint]) -> bool:
+    """
+    验证 Hint 列表是否符合要求
+    
+    Args:
+        hints: Hint 列表
+    
+    Returns:
+        如果验证成功返回 True，否则返回 False
+    """
+    # 检查数量
+    if len(hints) != 5:
+        return False
+    
+    # 检查每个 Hint
+    for i, hint in enumerate(hints, 1):
+        if hint.level != i:
+            return False
+        if not hint.content or hint.content.strip() == "":
+            return False
+        if len(hint.content) > 500:  # 长度限制
+            return False
+    
+    return True
+
+
+def validate_hint_content(content: str) -> bool:
+    """
+    验证单个 Hint 内容
+    
+    Args:
+        content: Hint 内容
+    
+    Returns:
+        如果验证成功返回 True，否则返回 False
+    """
+    if not content or content.strip() == "":
+        return False
+    if len(content) > 500:
+        return False
+    return True
