@@ -6,10 +6,12 @@ requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.25.0",
     "beautifulsoup4>=4.12.0",
+    "lxml>=5.0.0",
     "ollama>=0.1.0",
     "pydantic>=2.0.0",
     "tomli>=2.0.0",
     "aiofiles>=23.0.0",
+    "playwright>=1.40.0",
 ]
 
 [project.optional-dependencies]
@@ -26,3 +28,7 @@ hint-luogu = "generator.cli:main"
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["generator*"]
+exclude = ["data*", "frontend*", "prompts*", "scripts*", "tests*", "generator_source*"]

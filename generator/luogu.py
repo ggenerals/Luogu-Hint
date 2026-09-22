@@ -2,6 +2,7 @@
 洛谷数据获取模块
 
 负责从洛谷网站获取题目信息和题解
+注意：洛谷使用 Cloudflare 防护，需要使用 Playwright 进行浏览器自动化
 """
 
 import asyncio
@@ -9,7 +10,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-import httpx
+from playwright.async_api import async_playwright, Page, Browser
 from bs4 import BeautifulSoup
 
 from .config import Config, get_config
@@ -30,25 +31,34 @@ class LuoguFetcher:
             config: 配置对象
         """
         self.config = config or get_config()
-        self._client: Optional[httpx.AsyncClient] = None
+        self._browser: Optional[Browser] = None
+        self._page: Optional[Page] = None
         self._last_request_time: float = 0
 
-    async def _get_client(self) -> httpx.AsyncClient:
-        """获取 HTTP 客户端"""
-        if self._client is None:
-            self._client = httpx.AsyncClient(
-                timeout=self.config.luogu_timeout,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                }
+    async def _get_browser(self) -> Browser:
+        """获取浏览器实例"""
+        if self._browser is None:
+            playwright = await async_playwright().start()
+            self._browser = await playwright.chromium.launch(headless=True)
+        return self._browser
+
+    async def _get_page(self) -> Page:
+        """获取页面对象"""
+        if self._page is None:
+            browser = await self._get_browser()
+            self._page = await browser.new_page(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
-        return self._client
+        return self._page
 
     async def close(self):
-        """关闭客户端"""
-        if self._client:
-            await self._client.aclose()
-            self._client = None
+        """关闭浏览器"""
+        if self._page:
+            await self._page.close()
+            self._page = None
+        if self._browser:
+            await self._browser.close()
+            self._browser = None
 
     async def _rate_limit(self):
         """请求限速"""
@@ -58,16 +68,21 @@ class LuoguFetcher:
         self._last_request_time = time.time()
 
     async def _get(self, url: str) -> str:
-        """发送 GET 请求"""
-        client = await self._get_client()
+        """发送 GET 请求（使用浏览器）"""
+        page = await self._get_page()
 
         for attempt in range(self.config.luogu_max_retries):
             try:
                 await self._rate_limit()
-                response = await client.get(url)
-                response.raise_for_status()
-                return response.text
-            except httpx.HTTPError as e:
+                
+                # 访问页面并等待网络空闲
+                await page.goto(url, wait_until="networkidle", timeout=self.config.luogu_timeout * 1000)
+                
+                # 额外等待以确保动态内容加载完成
+                await page.wait_for_timeout(3000)
+                
+                return await page.content()
+            except Exception as e:
                 if attempt == self.config.luogu_max_retries - 1:
                     raise NetworkError(f"请求失败：{url}, 错误：{e}")
                 await asyncio.sleep(2 ** attempt)
