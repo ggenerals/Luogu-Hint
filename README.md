@@ -251,7 +251,7 @@ hint-luogu status P1001
 
 ## ⚠️ 注意事项
 
-- **网络礼仪**：本项目对洛谷的请求已限速（默认 1.5 秒/请求），请勿擅自调高频率
+- **洛谷用户协议**：本项目对洛谷的请求已限速（默认 1.5 秒/请求），请勿擅自调高频率，否则造成的后果请自行承担
 - **版权尊重**：前端仅展示 Hint，题解内容仅供 LLM 生成 Hint 时使用，不直接展示
 - **API Key 安全**：切勿将 API Key 提交到 Git，使用环境变量或本地配置文件
 - **数据备份**：定期备份 `data/hint.db` 数据库文件
@@ -266,8 +266,6 @@ hint-luogu status P1001
 4. 推送到分支 (`git push origin feature/amazing-feature`)
 5. 开启 Pull Request
 
-详见 [贡献指南](docs/CONTRIBUTING.md)
-
 ## 📄 License
 
 MIT License - 详见 [LICENSE](LICENSE) 文件
@@ -277,8 +275,3 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - 原项目作者：[UniGravityqwq](https://github.com/UniGravityqwq)
 - 洛谷：提供题目和题解平台
 - Ollama：本地 LLM 运行框架
-- Qwen：默认使用的语言模型
-
----
-
-**核心理念**：不是让 AI 代替你思考，而是在你思考的过程中提供恰到好处的帮助。
