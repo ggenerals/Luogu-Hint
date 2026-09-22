@@ -1,0 +1,48 @@
+[llm]
+# LLM Provider: "ollama" or "openai"
+provider = "ollama"
+
+# Model name (for Ollama: "qwen2.5:14b", for OpenAI: "gpt-3.5-turbo", etc.)
+model = "qwen2.5:14b"
+
+# Base URL for LLM API
+# For Ollama: "http://localhost:11434"
+# For OpenAI-compatible: "https://api.openai.com/v1" or your custom endpoint
+base_url = "http://localhost:11434"
+
+# API Key (only for OpenAI-compatible providers, leave empty for Ollama)
+api_key = ""
+
+[luogu]
+# Request timeout in seconds
+timeout = 20
+
+# Maximum number of retries for failed requests
+max_retries = 3
+
+# Maximum number of solutions to fetch per problem
+max_solutions = 3
+
+# Request interval in seconds (rate limiting)
+request_interval = 1.5
+
+[generation]
+# Number of hints to generate per problem
+hint_count = 5
+
+# Prompt version to use
+prompt_version = "v1"
+
+[data]
+# SQLite database path
+database = "data/hint.db"
+
+# JSON export path for frontend
+export = "frontend/data.json"
+
+# Cache directory
+cache_dir = "data/cache"
+
+[logging]
+# Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+level = "INFO"
