@@ -1,59 +1,36 @@
 ```
 # Dependencies
 __pycache__/
+
+# Compiled files
 *.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.ENV.local
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
 .env
 .env.local
 .env.*
-.python-version
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-*.tmp
-*.swp
-*~
-.DS_Store
-Thumbs.db
 
-# Build artifacts
-build/
-dist/
-*.egg
-*.egg-info/
-.eggs/
-target/
-
-# Dependencies
-node_modules/
-julia-*/
-zig*/
-
-# Testing
-.tests/
-.pytest_cache/
-.mypy_cache/
-htmlcov/
-.coverage
-
-# IDE
+# Editors
 .vscode/
 .idea/
 
-# Generated files
-generator_source/ProblemHint/out*.txt
+# Coverage reports
+.coverage
+coverage/
+htmlcov/
+
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+.Python
+*.egg-info/
+.eggs/
 ```
