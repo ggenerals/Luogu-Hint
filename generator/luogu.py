@@ -9,6 +9,7 @@
 
 import asyncio
 import time
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List
@@ -19,6 +20,8 @@ from bs4 import BeautifulSoup
 from .config import Config, get_config
 from .models import Problem, Solution
 from .errors import NetworkError, LuoguParseError, ProblemNotFoundError
+
+logger = logging.getLogger(__name__)
 
 
 class LuoguFetcher:
@@ -83,15 +86,48 @@ class LuoguFetcher:
                 await self._rate_limit()
                 
                 # 访问页面并等待基本加载
-                await page.goto(url, wait_until="commit", timeout=self.config.luogu_timeout * 1000)
+                response = await page.goto(url, wait_until="domcontentloaded", timeout=self.config.luogu_timeout * 1000)
                 
-                # 额外等待以确保动态内容加载完成
-                await page.wait_for_timeout(5000)
+                # 检查响应状态
+                if response and response.status == 404:
+                    raise ProblemNotFoundError(f"页面不存在：{url}")
                 
-                return await page.content()
+                if response and response.status >= 500:
+                    raise NetworkError(f"服务器错误：{response.status}")
+                
+                # 额外等待以确保动态内容加载完成 (给 Cloudflare 验证时间)
+                await page.wait_for_timeout(3000)
+                
+                # 检查是否有 Cloudflare 验证页面
+                content = await page.content()
+                if "Checking your browser" in content or "cloudflare" in content.lower():
+                    if attempt < self.config.luogu_max_retries - 1:
+                        logger.warning(f"遇到 Cloudflare 验证，重试中... ({attempt + 1}/{self.config.luogu_max_retries})")
+                        await asyncio.sleep(5)
+                        continue
+                    else:
+                        raise NetworkError("无法通过 Cloudflare 验证，请在本地环境运行或稍后重试")
+                
+                # 检查是否需要登录
+                if "登录" in content or "权限不足" in content or "Login" in content:
+                    # 尝试查找是否有实际内容（有些页面即使显示登录也有内容）
+                    app_div = page.locator("#app")
+                    if await app_div.count() == 0:
+                        if attempt < self.config.luogu_max_retries - 1:
+                            logger.warning(f"页面要求登录，重试中... ({attempt + 1}/{self.config.luogu_max_retries})")
+                            await asyncio.sleep(3)
+                            continue
+                        else:
+                            raise ProblemNotFoundError(f"无法访问页面，可能需要登录：{url}")
+                
+                return content
+                
+            except ProblemNotFoundError:
+                raise
             except Exception as e:
                 if attempt == self.config.luogu_max_retries - 1:
                     raise NetworkError(f"请求失败：{url}, 错误：{e}")
+                logger.warning(f"请求失败，重试中... ({attempt + 1}/{self.config.luogu_max_retries}): {e}")
                 await asyncio.sleep(2 ** attempt)
 
         raise NetworkError(f"请求失败：{url}")
