@@ -26,3 +26,7 @@ hint-luogu = "generator.cli:main"
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["generator*"]
+exclude = ["data*", "frontend*", "prompts*", "scripts*", "tests*", "generator_source*"]
