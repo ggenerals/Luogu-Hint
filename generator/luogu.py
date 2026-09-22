@@ -4,25 +4,40 @@
 负责从洛谷网站获取题目信息和题解
 参考原项目：https://github.com/GCSG01/Hint-Luogu/blob/main/index.py
 
-注意：洛谷使用 Cloudflare 防护，需要使用 Playwright 进行浏览器自动化
+注意：
+1. 洛谷使用 Cloudflare 防护，自动获取可能失败
+2. 推荐使用原项目已有的数据（通过迁移脚本）
+3. 或在本地有登录状态的环境中运行
+4. 也可以手动提供题目数据 JSON 文件
 """
 
 import asyncio
 import time
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List
 import re
-from playwright.async_api import async_playwright, Page, Browser
+import json
 from bs4 import BeautifulSoup
 
 from .config import Config, get_config
 from .models import Problem, Solution
 from .errors import NetworkError, LuoguParseError, ProblemNotFoundError
 
+logger = logging.getLogger(__name__)
+
 
 class LuoguFetcher:
-    """洛谷数据获取器"""
+    """
+    洛谷数据获取器
+    
+    由于洛谷使用 Cloudflare 防护，自动获取经常失败。
+    推荐使用以下替代方案：
+    1. 使用原项目的数据迁移脚本
+    2. 手动提供题目 JSON 文件
+    3. 在有洛谷登录状态的本地环境运行
+    """
 
     BASE_URL = "https://www.luogu.com.cn"
 
@@ -34,38 +49,14 @@ class LuoguFetcher:
             config: 配置对象
         """
         self.config = config or get_config()
-        self._browser: Optional[Browser] = None
-        self._page: Optional[Page] = None
         self._last_request_time: float = 0
-
-    async def _get_browser(self) -> Browser:
-        """获取浏览器实例"""
-        if self._browser is None:
-            playwright = await async_playwright().start()
-            # 添加 --no-sandbox 和 --disable-setuid-sandbox 以在容器/服务器环境中运行
-            self._browser = await playwright.chromium.launch(
-                headless=True,
-                args=['--no-sandbox', '--disable-setuid-sandbox']
-            )
-        return self._browser
-
-    async def _get_page(self) -> Page:
-        """获取页面对象"""
-        if self._page is None:
-            browser = await self._get_browser()
-            self._page = await browser.new_page(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-        return self._page
+        
+        # 警告用户 Cloudflare 问题
+        logger.warning("注意：洛谷使用 Cloudflare 防护，自动获取可能失败。建议使用数据迁移或手动提供数据。")
 
     async def close(self):
-        """关闭浏览器"""
-        if self._page:
-            await self._page.close()
-            self._page = None
-        if self._browser:
-            await self._browser.close()
-            self._browser = None
+        """关闭资源（现在不需要了）"""
+        pass
 
     async def _rate_limit(self):
         """请求限速"""
@@ -74,27 +65,67 @@ class LuoguFetcher:
             await asyncio.sleep(self.config.luogu_request_interval - elapsed)
         self._last_request_time = time.time()
 
-    async def _get(self, url: str) -> str:
-        """发送 GET 请求（使用浏览器）"""
-        page = await self._get_page()
-
+    async def _get_with_httpx(self, url: str) -> str:
+        """
+        使用 httpx 发送 GET 请求
+        
+        注意：由于 Cloudflare 防护，此方法很可能返回 403 或验证页面
+        """
+        import httpx
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        }
+        
         for attempt in range(self.config.luogu_max_retries):
             try:
                 await self._rate_limit()
                 
-                # 访问页面并等待基本加载
-                await page.goto(url, wait_until="commit", timeout=self.config.luogu_timeout * 1000)
-                
-                # 额外等待以确保动态内容加载完成
-                await page.wait_for_timeout(5000)
-                
-                return await page.content()
+                async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+                    response = await client.get(url, timeout=self.config.luogu_timeout)
+                    
+                    if response.status_code == 404:
+                        raise ProblemNotFoundError(f"页面不存在：{url}")
+                    
+                    if response.status_code == 403:
+                        if attempt < self.config.luogu_max_retries - 1:
+                            logger.warning(f"收到 403  Forbidden，重试中... ({attempt + 1}/{self.config.luogu_max_retries})")
+                            await asyncio.sleep(3)
+                            continue
+                        else:
+                            raise NetworkError("被 Cloudflare 拦截 (403)，请在本地环境运行或使用已有数据")
+                    
+                    if response.status_code >= 500:
+                        raise NetworkError(f"服务器错误：{response.status_code}")
+                    
+                    content = response.text
+                    
+                    # 检查是否有 Cloudflare 验证页面
+                    if "Just a moment" in content or "challenges.cloudflare.com" in content:
+                        if attempt < self.config.luogu_max_retries - 1:
+                            logger.warning(f"遇到 Cloudflare 验证，重试中... ({attempt + 1}/{self.config.luogu_max_retries})")
+                            await asyncio.sleep(5)
+                            continue
+                        else:
+                            raise NetworkError("无法通过 Cloudflare 验证，请在本地环境运行或使用已有数据")
+                    
+                    return content
+                    
+            except ProblemNotFoundError:
+                raise
             except Exception as e:
                 if attempt == self.config.luogu_max_retries - 1:
                     raise NetworkError(f"请求失败：{url}, 错误：{e}")
+                logger.warning(f"请求失败，重试中... ({attempt + 1}/{self.config.luogu_max_retries}): {e}")
                 await asyncio.sleep(2 ** attempt)
 
         raise NetworkError(f"请求失败：{url}")
+
+    async def _get(self, url: str) -> str:
+        """发送 GET 请求"""
+        return await self._get_with_httpx(url)
 
     @staticmethod
     def _remove_html_tags(html: str) -> str:

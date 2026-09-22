@@ -20,14 +20,52 @@ Hint-Luogu 是一个面向洛谷用户的题目 Hint 生成与展示系统。当
 
 ### ⚠️ 重要提示：洛谷反爬虫机制
 
-**洛谷网站使用了 Cloudflare 防护**，自动化脚本可能无法直接从服务器获取题目数据。
+**洛谷网站使用了 Cloudflare 防护**，自动化脚本可能无法直接从服务器获取题目数据（返回 403 或显示"Just a moment..."验证页面）。
 
-**推荐解决方案：**
+**这不是 Bug！** 这是洛谷网站的正常防护机制。
 
-1. **使用原项目数据迁移**（推荐）：如果您已有原项目的 `data.json` 和 `dat*.json` 文件，可以直接迁移到新系统
-2. **在本地环境运行**：在您的个人电脑上运行（浏览器可能已有 cookie），参考下方 Quick Start  
-3. **手动提供题目数据**：创建 JSON 文件手动导入（详见 [数据格式文档](docs/DATA_FORMAT.md)）
-4. **等待 API 支持**：如果未来洛谷提供公开 API，可以更新 `generator/luogu.py` 使用 API
+#### 推荐解决方案
+
+**方案一：使用原项目数据迁移（推荐）**
+
+如果您有原 Hint-Luogu 项目的数据文件：
+
+```bash
+# 1. 复制旧数据
+mkdir -p data/old_data
+cp /path/to/old/data.json data/old_data/
+cp /path/to/old/dat*.json data/old_data/
+
+# 2. 导入数据
+python scripts/import_manual.py data/old_data/
+
+# 3. 导出为新格式
+hint-luogu export
+```
+
+**方案二：在本地环境运行**
+
+在您平时浏览洛谷的电脑上（可能有登录状态和 Cookie）：
+
+```bash
+# 配置 LLM
+export LLM_API_KEY="your-api-key"
+export LLM_BASE_URL="https://your-llm-endpoint"
+export LLM_MODEL="your-model"
+
+# 添加题目
+hint-luogu add P1000
+```
+
+**方案三：手动创建题目数据**
+
+创建 `data/manual/P1000.json` 文件，然后运行：
+
+```bash
+python scripts/import_single.py data/manual/P1000.json
+```
+
+详细指南请参考：[手动导入文档](docs/MANUAL_DATA_IMPORT.md)
 
 ---
 

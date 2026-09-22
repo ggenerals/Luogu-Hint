@@ -1,0 +1,2 @@
+[console_scripts]
+hint-luogu = generator.cli:main
