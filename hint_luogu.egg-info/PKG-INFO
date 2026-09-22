@@ -10,7 +10,6 @@ Requires-Dist: ollama>=0.1.0
 Requires-Dist: pydantic>=2.0.0
 Requires-Dist: tomli>=2.0.0
 Requires-Dist: aiofiles>=23.0.0
-Requires-Dist: playwright>=1.40.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0.0; extra == "dev"
 Requires-Dist: pytest-mock>=3.10.0; extra == "dev"
