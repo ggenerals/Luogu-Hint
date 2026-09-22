@@ -105,7 +105,7 @@ class PromptManager:
         self,
         title: str,
         statement: str,
-        solutions: list[str],
+        solutions: list[dict],
         version: str = "v1"
     ) -> str:
         """
@@ -114,17 +114,41 @@ class PromptManager:
         Args:
             title: 题目标题
             statement: 题目描述
-            solutions: 题解列表
+            solutions: 题解列表，每个元素为包含 content 字段的字典
             version: Prompt 版本
 
         Returns:
             完整的 Prompt 文本
         """
         template = self.load_prompt(version)
+        
+        # 使用 Jinja2 风格的模板渲染（如果模板支持）
+        if "{{" in template:
+            # 简单的手动替换（不依赖外部库）
+            rendered = template.replace("{{statement}}", statement)
+            
+            solutions_text = ""
+            for i, sol in enumerate(solutions, 1):
+                content = sol.get("content", "") if isinstance(sol, dict) else str(sol)
+                solutions_text += f"""---------- 第 {i} 篇题解开始 ----------
 
+{content}
+
+---------- 第 {i} 篇题解结束 ----------
+
+"""
+            
+            rendered = rendered.replace("{% for solution in solutions %}", "")
+            rendered = rendered.replace("{% endfor %}", "")
+            rendered = rendered.replace("{{ solution.content }}", solutions_text.strip())
+            
+            return rendered
+        
+        # 回退到旧格式
         solutions_text = ""
         for i, sol in enumerate(solutions, 1):
-            solutions_text += f"\n### 题解 {i}\n\n{sol}\n\n"
+            content = sol.get("content", "") if isinstance(sol, dict) else str(sol)
+            solutions_text += f"\n### 题解 {i}\n\n{content}\n\n"
 
         return template.format(
             title=title,

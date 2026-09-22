@@ -65,11 +65,12 @@ class HintGenerator:
         Returns:
             Hint 列表
         """
-        # 构建 Prompt
+        # 构建 Prompt - 传递字典格式
+        solution_dicts = [{"content": s.content} for s in solutions]
         prompt = self.prompt_manager.build_prompt(
             title=problem.title,
             statement=problem.statement,
-            solutions=[s.content for s in solutions]
+            solutions=solution_dicts
         )
 
         logger.info(f"正在为 {problem.id} 生成 Hint...")

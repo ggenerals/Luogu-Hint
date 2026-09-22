@@ -313,8 +313,13 @@ class Database:
 
         return result
 
-    def export_json(self, export_path: Path) -> dict:
+    def export_json(self, export_path: str | Path) -> dict:
         """导出为前端 JSON 格式"""
+        from pathlib import Path as PathType
+        
+        if isinstance(export_path, str):
+            export_path = PathType(export_path)
+        
         problems = self.get_all_problems_with_hints()
 
         data = {
