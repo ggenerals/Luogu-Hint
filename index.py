@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 from openai import OpenAI
 import os
+import random
 
 # 自动清除可能导致报错的 socks 代理环境变量
 for key in ['all_proxy', 'ALL_PROXY', 'http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY']:
@@ -17,15 +18,23 @@ import re
 # ... 下面接着你原来的 import 语句
 
 # ==================== 配置区 ====================
+
+# client = OpenAI(
+#     api_key="ollama",            # Ollama 不需要真实密钥，但OpenAI SDK要求此字段非空，填任意字符串即可
+#     base_url="http://localhost:11434/v1"  # Ollama 本地 OpenAI 兼容端点
+# )
+
+# MODEL_NAME = "modelscope.cn/Qwen/Qwen3-0.6B-GGUF"
+
 # 选择一个 OpenAI 兼容的 API（任选其一，取消注释）
 
 # 方案1: DeepSeek API（性价比最高）
 # 获取 key: https://platform.deepseek.com/api_keys
 client = OpenAI(
-    api_key="sk-761b691c1a044b19aa666c6e1a095b51",
+    api_key="sk-55b86f61c4ff49e1b33e505ec393d79d",
     base_url="https://api.deepseek.com"
 )
-MODEL_NAME = "deepseek-flash"  # 或 deepseek-reasoner
+MODEL_NAME = "deepseek-flash"
 
 # 方案2: SiliconFlow（硅基流动，有免费 Qwen 额度）
 # 获取 key: https://cloud.siliconflow.cn/account/ak
@@ -77,8 +86,6 @@ def get_content(url):
 
 def remove_space(text):
     return '\n'.join(line.strip() for line in text.splitlines())
-
-import re # 确保文件顶部导入了 re 模块
 
 def get_statement(pid):
     url = f"https://www.luogu.com.cn/problem/{pid}"
@@ -274,12 +281,11 @@ def get_hint(pid):
 
 # ============ 批量生成 ============
 if __name__ == "__main__":
-    # 先拿 P1001 测试一下
-    for i in range(4001, 4002): 
+    for i in range(1080, 1082): 
         pid = "P" + str(i)
         print(f"\n========== 开始处理 {pid} ==========")
         get_hint(pid)
         print(f"========== {pid} 处理结束 ==========\n")
         
-        # 休息 3 秒，防止被洛谷封 IP
-        time.sleep(3) 
+        # 防止被洛谷封 IP
+        time.sleep(random.uniform(3, 6))
